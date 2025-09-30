@@ -35,6 +35,13 @@ export default function App() {
     };
     playAudio();
     }, []);
+
+  useEffect(() => {
+    startMicMonitoring();
+    return () => {
+      stopMicMonitoring();
+    };
+  }, []);
   const handleCakeClick = async () => {
     const audio = audioRef.current;
     audio.play();
@@ -81,6 +88,8 @@ export default function App() {
           sum += v * v;
         }
         const rms = Math.sqrt(sum / data.length);
+
+        try { console.debug('mic rms=', rms.toFixed(4)); } catch (e) {}
         const chosen = pickStaticFrame(rms);
         setStaticFrame((prev) => {
           if (prev === chosen) return prev;
