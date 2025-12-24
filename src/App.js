@@ -16,16 +16,18 @@ export default function App() {
   const rafRef = useRef(null);
 
   // 🎂 asset paths (FROM public/assets)
-  const cake1 = "/assets/cake1.png";
-  const cake2 = "/assets/cake2.png";
-  const cake3 = "/assets/cake3.png";
-  const cake100 = "/assets/100.png";
-  const cake80 = "/assets/80.png";
-  const cake60 = "/assets/60.png";
-  const cake40 = "/assets/40.png";
-  const cake20 = "/assets/20.png";
-  const birthdayText = "/assets/birthdaytext(1).png";
-  const birthdaySong = "/assets/bdayaudo.mp3";
+  // 🎂 asset paths (FROM public/assets)
+const cake1 = "/assets/cake1.png";
+const cake2 = "/assets/cake2.png";
+const cake3 = "/assets/cake3.png";
+const cake100 = "/assets/100.png";
+const cake80 = "/assets/80.png";
+const cake60 = "/assets/60.png";
+const cake40 = "/assets/40.png";
+const cake20 = "/assets/20.png";
+const birthdayText = "/assets/birthdaytext (1).png";
+const birthdaySong = "/assets/bdayaudo.mp3";
+
 
   useEffect(() => {
     const playAudio = async () => {
