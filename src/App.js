@@ -10,6 +10,7 @@ import cake20 from "./assets/20.png";
 import birthdayText from "./assets/birthdaytext.png";
 import "./App.css";
 import Confetti from "./Confetti";
+import TerminalIntro from "./TerminalIntro";
 import { useEffect, useRef, useState } from "react";
 import birthdaySong from "./assets/bdayaudo.mp3";
 
@@ -17,6 +18,7 @@ import birthdaySong from "./assets/bdayaudo.mp3";
 export default function App() {
   const audioRef = useRef(null);
   const [staticFrame, setStaticFrame] = useState(null);
+  const [showTerminal, setShowTerminal] = useState(true);
 
   const micStreamRef = useRef(null);
   const audioCtxRef = useRef(null);
@@ -33,8 +35,8 @@ export default function App() {
         console.log("Autoplay blocked, waiting for user interaction:", err);
       }
     };
-    playAudio();
-    }, []);
+    if (!showTerminal) playAudio();
+  }, [showTerminal]);
 
   useEffect(() => {
     startMicMonitoring();
@@ -105,13 +107,7 @@ export default function App() {
   };
 
   const [celebrating, setCelebrating] = useState(false);
-  const [showMatthew, setShowMatthew] = useState(false);
   let matthewSrc = null;
-  try {
-    matthewSrc = require("./assets/matthew.jpg");
-  } catch (e) {
-    matthewSrc = null;
-  }
   useEffect(() => {
     if (staticFrame === cake20) {
       stopMicMonitoring(false);
@@ -153,8 +149,12 @@ export default function App() {
   return (
     <div className="App">
       <audio ref={audioRef} src={birthdaySong} loop />
-      <img src={birthdayText} alt="Happy Birthday" className="birthdayText" draggable={false} />
-      <div className="cakeLoop">
+      {showTerminal ? (
+        <TerminalIntro onDone={() => setShowTerminal(false)} />
+      ) : (
+        <>
+          <img src={birthdayText} alt="Happy Birthday" className="birthdayText" draggable={false} />
+          <div className="cakeLoop">
         {staticFrame ? (
           <PixelAnimator
             className="cake"
@@ -186,36 +186,16 @@ export default function App() {
         )}
       </div>
       {celebrating && (
-        <Confetti
+          <Confetti
           pieces={48}
           duration={8000}
           onDone={() => {
             setCelebrating(false);
-            setTimeout(() => setShowMatthew(true), 250);
           }}
         />
       )}
-
-      {showMatthew && (
-        <div
-          className="matthew-overlay"
-          onClick={() => setShowMatthew(false)}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") setShowMatthew(false);
-          }}
-          role="dialog"
-          tabIndex={-1}
-        >
-          <div className="matthew-card">
-            {matthewSrc ? (
-              <img src={matthewSrc} alt="Matthew" />
-            ) : (
-              <div style={{ color: "white", padding: 24, fontSize: 20 }}>
-                Matthew
-              </div>
-            )}
-          </div>
-        </div>
+      
+        </>
       )}
     </div>
   );
