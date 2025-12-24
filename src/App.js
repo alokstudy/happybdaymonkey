@@ -1,19 +1,8 @@
 import PixelAnimator from "./PixelAnimator";
-import cake1 from "./assets/cake1.png";
-import cake2 from "./assets/cake2.png";
-import cake3 from "./assets/cake3.png";
-import cake100 from "./assets/100.png";
-import cake80 from "./assets/80.png";
-import cake60 from "./assets/60.png";
-import cake40 from "./assets/40.png";
-import cake20 from "./assets/20.png";
-import birthdayText from "./assets/birthdaytext.png";
 import "./App.css";
 import Confetti from "./Confetti";
 import TerminalIntro from "./TerminalIntro";
 import { useEffect, useRef, useState } from "react";
-import birthdaySong from "./assets/bdayaudo.mp3";
-
 
 export default function App() {
   const audioRef = useRef(null);
@@ -26,6 +15,17 @@ export default function App() {
   const gainNodeRef = useRef(null);
   const rafRef = useRef(null);
 
+  // 🎂 asset paths (FROM public/assets)
+  const cake1 = "/assets/cake1.png";
+  const cake2 = "/assets/cake2.png";
+  const cake3 = "/assets/cake3.png";
+  const cake100 = "/assets/100.png";
+  const cake80 = "/assets/80.png";
+  const cake60 = "/assets/60.png";
+  const cake40 = "/assets/40.png";
+  const cake20 = "/assets/20.png";
+  const birthdayText = "/assets/birthdaytext.png";
+  const birthdaySong = "/assets/bdayaudo.mp3";
 
   useEffect(() => {
     const playAudio = async () => {
@@ -40,13 +40,11 @@ export default function App() {
 
   useEffect(() => {
     startMicMonitoring();
-    return () => {
-      stopMicMonitoring();
-    };
+    return () => stopMicMonitoring();
   }, []);
-  const handleCakeClick = async () => {
-    const audio = audioRef.current;
-    audio.play();
+
+  const handleCakeClick = () => {
+    audioRef.current?.play();
   };
 
   const pickStaticFrame = (rms) => {
@@ -68,46 +66,50 @@ export default function App() {
       const audioCtx = new AudioContext();
       audioCtxRef.current = audioCtx;
 
-  const source = audioCtx.createMediaStreamSource(stream);
-  const gainNode = audioCtx.createGain();
-  const sensitivity = 3.0;
-  gainNode.gain.value = sensitivity;
-  gainNodeRef.current = gainNode;
+      const source = audioCtx.createMediaStreamSource(stream);
+      const gainNode = audioCtx.createGain();
+      gainNode.gain.value = 3.0;
+      gainNodeRef.current = gainNode;
 
-  const analyser = audioCtx.createAnalyser();
-  analyser.fftSize = 2048;
-  analyserRef.current = analyser;
-  source.connect(gainNode);
-  gainNode.connect(analyser);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 2048;
+      analyserRef.current = analyser;
+
+      source.connect(gainNode);
+      gainNode.connect(analyser);
 
       const data = new Float32Array(analyser.fftSize);
 
       const loop = () => {
         analyser.getFloatTimeDomainData(data);
         let sum = 0;
-        for (let i = 0; i < data.length; i++) {
-          const v = data[i];
-          sum += v * v;
-        }
+        for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
         const rms = Math.sqrt(sum / data.length);
 
-        try { console.debug('mic rms=', rms.toFixed(4)); } catch (e) {}
         const chosen = pickStaticFrame(rms);
-        setStaticFrame((prev) => {
-          if (prev === chosen) return prev;
-          return chosen;
-        });
+        setStaticFrame((prev) => (prev === chosen ? prev : chosen));
         rafRef.current = requestAnimationFrame(loop);
       };
 
       rafRef.current = requestAnimationFrame(loop);
     } catch (err) {
-      console.warn("Microphone access denied or failed:", err);
+      console.warn("Microphone access denied:", err);
     }
   };
 
+  const stopMicMonitoring = (reset = true) => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    micStreamRef.current?.getTracks().forEach((t) => t.stop());
+    audioCtxRef.current?.close();
+    micStreamRef.current = null;
+    audioCtxRef.current = null;
+    analyserRef.current = null;
+    gainNodeRef.current = null;
+    if (reset) setStaticFrame(null);
+  };
+
   const [celebrating, setCelebrating] = useState(false);
-  let matthewSrc = null;
+
   useEffect(() => {
     if (staticFrame === cake20) {
       stopMicMonitoring(false);
@@ -115,86 +117,48 @@ export default function App() {
     }
   }, [staticFrame]);
 
-
-  const stopMicMonitoring = (resetAnimation = true) => {
-    if (rafRef.current) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    }
-    if (analyserRef.current) {
-      try {
-        analyserRef.current.disconnect();
-        if (gainNodeRef.current) {
-          try { gainNodeRef.current.disconnect(); } catch (e) {}
-          gainNodeRef.current = null;
-        }
-      } catch (e) {}
-      analyserRef.current = null;
-    }
-    if (audioCtxRef.current) {
-      try {
-        audioCtxRef.current.close();
-      } catch (e) {}
-      audioCtxRef.current = null;
-    }
-    if (micStreamRef.current) {
-      micStreamRef.current.getTracks().forEach((t) => t.stop());
-      micStreamRef.current = null;
-    }
-    if (resetAnimation) {
-      setStaticFrame(null);
-    }
-  };
-
   return (
     <div className="App">
       <audio ref={audioRef} src={birthdaySong} loop />
+
       {showTerminal ? (
         <TerminalIntro onDone={() => setShowTerminal(false)} />
       ) : (
         <>
-          <img src={birthdayText} alt="Happy Birthday" className="birthdayText" draggable={false} />
+          <img
+            src={birthdayText}
+            alt="Happy Birthday"
+            className="birthdayText"
+            draggable={false}
+          />
+
           <div className="cakeLoop">
-        {staticFrame ? (
-          <PixelAnimator
-            className="cake"
-            frames={[staticFrame]}
-            fps={3}
-            scale={4}
-            mode="img"
-            onClick={handleCakeClick}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") handleCakeClick();
-            }}
-          />
-        ) : (
-          <PixelAnimator
-            className="cake"
-            frames={[cake1, cake2, cake3]}
-            fps={3}
-            scale={4}
-            mode="img"
-            onClick={handleCakeClick}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") handleCakeClick();
-            }}
-          />
-        )}
-      </div>
-      {celebrating && (
-          <Confetti
-          pieces={48}
-          duration={8000}
-          onDone={() => {
-            setCelebrating(false);
-          }}
-        />
-      )}
-      
+            <PixelAnimator
+              className="cake"
+              frames={
+                staticFrame
+                  ? [staticFrame]
+                  : [cake1, cake2, cake3]
+              }
+              fps={3}
+              scale={4}
+              mode="img"
+              onClick={handleCakeClick}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") handleCakeClick();
+              }}
+            />
+          </div>
+
+          {celebrating && (
+            <Confetti
+              pieces={48}
+              duration={8000}
+              onDone={() => setCelebrating(false)}
+            />
+          )}
         </>
       )}
     </div>
